@@ -310,6 +310,7 @@ fn create_and_parse_master_playlist_full() {
             iv: Some("0xb059217aa2649ce170b734".into()),
             keyformat: Some("xXkeyformatXx".into()),
             keyformatversions: Some("xXFormatVers".into()),
+            key_id: Some("0xb059217aa2649ce170b734".into()),
         })],
         start: Some(Start {
             time_offset: "123123123".parse().unwrap(),
@@ -379,6 +380,7 @@ fn create_and_parse_media_playlist_full() {
                 iv: Some("0xb059217aa2649ce170b734".into()),
                 keyformat: Some("xXkeyformatXx".into()),
                 keyformatversions: Some("xXFormatVers".into()),
+                key_id: Some("0xb059217aa2649ce170b734".into()),
             }),
             map: Some(Map {
                 uri: "www.map-uri.com".into(),

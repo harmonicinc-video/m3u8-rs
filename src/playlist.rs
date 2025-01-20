@@ -965,6 +965,7 @@ pub struct Key {
     pub iv: Option<String>,
     pub keyformat: Option<String>,
     pub keyformatversions: Option<String>,
+    pub key_id: Option<String>,
 }
 
 impl Key {
@@ -981,6 +982,7 @@ impl Key {
         }
         let keyformat = quoted_string!(attrs, "KEYFORMAT");
         let keyformatversions = quoted_string!(attrs, "KEYFORMATVERSIONS");
+        let key_id = unquoted_string!(attrs, "KEYID");
 
         Ok(Key {
             method,
@@ -988,6 +990,7 @@ impl Key {
             iv,
             keyformat,
             keyformatversions,
+            key_id,
         })
     }
 
@@ -996,7 +999,8 @@ impl Key {
         write_some_attribute_quoted!(w, ",URI", &self.uri)?;
         write_some_attribute!(w, ",IV", &self.iv)?;
         write_some_attribute_quoted!(w, ",KEYFORMAT", &self.keyformat)?;
-        write_some_attribute_quoted!(w, ",KEYFORMATVERSIONS", &self.keyformatversions)
+        write_some_attribute_quoted!(w, ",KEYFORMATVERSIONS", &self.keyformatversions)?;
+        write_some_attribute!(w, ",KEYID", &self.key_id)
     }
 }
 
