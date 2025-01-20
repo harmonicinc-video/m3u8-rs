@@ -539,7 +539,7 @@ fn key(i: &[u8]) -> IResult<&[u8], Key> {
 }
 
 fn program_date_time(i: &[u8]) -> IResult<&[u8], chrono::DateTime<chrono::FixedOffset>> {
-    map_res(consume_line, |s| chrono::DateTime::parse_from_rfc3339(&s))(i)
+    map_res(consume_line, |s| chrono::DateTime::from_str(&s))(i)
 }
 
 fn daterange(i: &[u8]) -> IResult<&[u8], DateRange> {
