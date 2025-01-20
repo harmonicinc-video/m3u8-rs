@@ -977,7 +977,7 @@ impl Key {
 
         let uri = quoted_string!(attrs, "URI");
         let iv = unquoted_string!(attrs, "IV");
-        if method == KeyMethod::None && iv.is_none() {
+        if method != KeyMethod::None && iv.is_none() {
             return Err("IV is required unless METHOD is NONE".parse().unwrap());
         }
         let keyformat = quoted_string!(attrs, "KEYFORMAT");
