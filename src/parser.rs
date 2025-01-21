@@ -538,8 +538,11 @@ fn key(i: &[u8]) -> IResult<&[u8], Key> {
     map_res(key_value_pairs, Key::from_hashmap)(i)
 }
 
+/// Handle missing colon in TZ from ffmpeg output
 fn program_date_time(i: &[u8]) -> IResult<&[u8], chrono::DateTime<chrono::FixedOffset>> {
-    map_res(consume_line, |s| chrono::DateTime::from_str(&s))(i)
+    map_res(consume_line, |s| chrono::DateTime::parse_from_rfc3339(&s).or_else(|_| {
+        chrono::DateTime::<chrono::FixedOffset>::parse_from_str(&s, "%Y-%m-%dT%H:%M:%S.%f%z")
+    }))(i)
 }
 
 fn daterange(i: &[u8]) -> IResult<&[u8], DateRange> {
