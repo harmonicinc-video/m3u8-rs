@@ -390,32 +390,35 @@ fn create_and_parse_media_playlist_full() {
                 }),
                 other_attributes: Default::default(),
             }),
-            program_date_time: Some(
-                chrono::FixedOffset::east(8 * 3600)
-                    .ymd(2010, 2, 19)
-                    .and_hms_milli(14, 54, 23, 31),
+            program_date_time: Some(chrono::FixedOffset::east_opt(8 * 3600)
+            .unwrap()
+            .with_ymd_and_hms(2010, 2, 19, 14, 54, 23)
+            .unwrap()
+            + chrono::Duration::milliseconds(31)
             ),
-            daterange: Some(DateRange {
-                id: "9999".into(),
-                class: Some("class".into()),
-                start_date: chrono::FixedOffset::east(8 * 3600)
-                    .ymd(2010, 2, 19)
-                    .and_hms_milli(14, 54, 23, 31),
-                end_date: None,
-                duration: None,
-                planned_duration: Some("40.000".parse().unwrap()),
-                x_prefixed: Some(HashMap::from([(
-                    "X-client-attribute".into(),
-                    "whatever".into(),
-                )])),
-                end_on_next: false,
-                other_attributes: Default::default(),
-            }),
             unknown_tags: vec![ExtTag {
                 tag: "X-CUE-OUT".into(),
                 rest: Some("DURATION=2.002".into()),
             }],
             ..Default::default()
+        }],
+        date_ranges: vec![DateRange {
+            id: "9999".into(),
+            class: Some("class".into()),
+            start_date: chrono::FixedOffset::east_opt(8 * 3600)
+                .unwrap()
+                .with_ymd_and_hms(2010, 2, 19, 14, 54, 23)
+                .unwrap()
+                + chrono::Duration::milliseconds(31),
+            end_date: None,
+            duration: None,
+            planned_duration: Some("40.000".parse().unwrap()),
+            x_prefixed: Some(HashMap::from([(
+                "X-client-attribute".into(),
+                "whatever".into(),
+            )])),
+            end_on_next: false,
+            other_attributes: Default::default(),
         }],
         unknown_tags: vec![],
     });

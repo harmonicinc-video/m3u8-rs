@@ -734,6 +734,8 @@ pub struct MediaPlaylist {
     pub start: Option<Start>,
     /// `#EXT-X-INDEPENDENT-SEGMENTS`
     pub independent_segments: bool,
+    /// `#EXT-X-DATERANGE:<attribute-list>`
+    pub date_ranges: Vec<DateRange>,
     /// Unknown tags before the first media segment
     pub unknown_tags: Vec<ExtTag>,
 }
@@ -771,6 +773,11 @@ impl MediaPlaylist {
         }
         for segment in &self.segments {
             segment.write_to(w)?;
+        }
+        for daterange in &self.date_ranges {
+            write!(w, "#EXT-X-DATERANGE:")?;
+            daterange.write_attributes_to(w)?;
+            writeln!(w)?;
         }
         if self.end_list {
             writeln!(w, "#EXT-X-ENDLIST")?;
@@ -843,8 +850,6 @@ pub struct MediaSegment {
     pub map: Option<Map>,
     /// `#EXT-X-PROGRAM-DATE-TIME:<YYYY-MM-DDThh:mm:ssZ>`
     pub program_date_time: Option<chrono::DateTime<chrono::FixedOffset>>,
-    /// `#EXT-X-DATERANGE:<attribute-list>`
-    pub daterange: Option<DateRange>,
     /// `#EXT-`
     pub unknown_tags: Vec<ExtTag>,
 }
@@ -879,11 +884,6 @@ impl MediaSegment {
                 "#EXT-X-PROGRAM-DATE-TIME:{}",
                 v.to_rfc3339_opts(chrono::SecondsFormat::Millis, true)
             )?;
-        }
-        if let Some(ref v) = self.daterange {
-            write!(w, "#EXT-X-DATERANGE:")?;
-            v.write_attributes_to(w)?;
-            writeln!(w)?;
         }
         for unknown_tag in &self.unknown_tags {
             writeln!(w, "{}", unknown_tag)?;

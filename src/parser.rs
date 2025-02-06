@@ -352,6 +352,7 @@ enum MediaPlaylistTag {
     IFramesOnly,
     Start(Start),
     IndependentSegments,
+    DateRange(DateRange),
 }
 
 fn media_playlist_tag(i: &[u8]) -> IResult<&[u8], MediaPlaylistTag> {
@@ -382,6 +383,9 @@ fn media_playlist_tag(i: &[u8]) -> IResult<&[u8], MediaPlaylistTag> {
         map(start_tag, MediaPlaylistTag::Start),
         map(tag("#EXT-X-INDEPENDENT-SEGMENTS"), |_| {
             MediaPlaylistTag::IndependentSegments
+        }),
+        map(pair(tag("#EXT-X-DATERANGE:"), daterange), |(_, range)| {
+            MediaPlaylistTag::DateRange(range)
         }),
         map(tag("#EXT-X-ENDLIST"), |_| MediaPlaylistTag::EndList),
         map(media_segment_tag, MediaPlaylistTag::Segment),
@@ -423,6 +427,9 @@ fn media_playlist_from_tags(mut tags: Vec<MediaPlaylistTag>) -> MediaPlaylist {
             MediaPlaylistTag::IndependentSegments => {
                 media_playlist.independent_segments = true;
             }
+            MediaPlaylistTag::DateRange(d) => {
+                media_playlist.date_ranges.push(d);
+            }
             MediaPlaylistTag::Segment(segment_tag) => match segment_tag {
                 SegmentTag::Extinf(d, t) => {
                     next_segment.duration = d;
@@ -442,9 +449,6 @@ fn media_playlist_from_tags(mut tags: Vec<MediaPlaylistTag>) -> MediaPlaylist {
                 }
                 SegmentTag::ProgramDateTime(d) => {
                     next_segment.program_date_time = Some(d);
-                }
-                SegmentTag::DateRange(d) => {
-                    next_segment.daterange = Some(d);
                 }
                 SegmentTag::Unknown(t) => {
                     next_segment.unknown_tags.push(t);
@@ -485,7 +489,6 @@ enum SegmentTag {
     Key(Key),
     Map(Map),
     ProgramDateTime(chrono::DateTime<chrono::FixedOffset>),
-    DateRange(DateRange),
     Unknown(ExtTag),
     Comment(Option<String>),
     Uri(String),
@@ -512,9 +515,6 @@ fn media_segment_tag(i: &[u8]) -> IResult<&[u8], SegmentTag> {
             pair(tag("#EXT-X-PROGRAM-DATE-TIME:"), program_date_time),
             |(_, pdt)| SegmentTag::ProgramDateTime(pdt),
         ),
-        map(pair(tag("#EXT-X-DATERANGE:"), daterange), |(_, range)| {
-            SegmentTag::DateRange(range)
-        }),
         map(ext_tag, SegmentTag::Unknown),
         map(comment_tag, SegmentTag::Comment),
         map(consume_line, SegmentTag::Uri),
