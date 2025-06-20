@@ -353,6 +353,8 @@ enum MediaPlaylistTag {
     Start(Start),
     IndependentSegments,
     DateRange(DateRange),
+    EleRating(String),
+    EleTitle(String),
 }
 
 fn media_playlist_tag(i: &[u8]) -> IResult<&[u8], MediaPlaylistTag> {
@@ -388,6 +390,14 @@ fn media_playlist_tag(i: &[u8]) -> IResult<&[u8], MediaPlaylistTag> {
             MediaPlaylistTag::DateRange(range)
         }),
         map(tag("#EXT-X-ENDLIST"), |_| MediaPlaylistTag::EndList),
+        map(
+            pair(tag("#EXT-X-ELE_RATING:"), consume_line),
+            |(_, value)| MediaPlaylistTag::EleRating(value),
+        ),
+        map(
+            pair(tag("#EXT-X-ELE_TITLE:"), consume_line),
+            |(_, value)| MediaPlaylistTag::EleTitle(value),
+        ),
         map(media_segment_tag, MediaPlaylistTag::Segment),
     ))(i)
 }
@@ -430,6 +440,12 @@ fn media_playlist_from_tags(mut tags: Vec<MediaPlaylistTag>) -> MediaPlaylist {
             MediaPlaylistTag::DateRange(d) => {
                 media_playlist.date_ranges.push(d);
             }
+            MediaPlaylistTag::EleRating(value) => {
+                media_playlist.ele_rating = Some(value);
+            },
+            MediaPlaylistTag::EleTitle(value) => {
+                media_playlist.ele_title = Some(value);
+            },
             MediaPlaylistTag::Segment(segment_tag) => match segment_tag {
                 SegmentTag::Extinf(d, t) => {
                     next_segment.duration = d;

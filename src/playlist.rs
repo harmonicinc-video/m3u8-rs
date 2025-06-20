@@ -736,6 +736,8 @@ pub struct MediaPlaylist {
     pub independent_segments: bool,
     /// `#EXT-X-DATERANGE:<attribute-list>`
     pub date_ranges: Vec<DateRange>,
+    pub ele_rating: Option<String>,
+    pub ele_title: Option<String>,
     /// Unknown tags before the first media segment
     pub unknown_tags: Vec<ExtTag>,
 }
@@ -778,6 +780,16 @@ impl MediaPlaylist {
             write!(w, "#EXT-X-DATERANGE:")?;
             daterange.write_attributes_to(w)?;
             writeln!(w)?;
+        }
+        if let Some(ref rating) = self.ele_rating {
+            if !rating.is_empty() {
+                writeln!(w, "#EXT-X-ELE_RATING:{}", rating)?;
+            }
+        }
+        if let Some(ref title) = self.ele_title {
+            if !title.is_empty() {
+                writeln!(w, "#EXT-X-ELE_TITLE:{}", title)?;
+            }
         }
         if self.end_list {
             writeln!(w, "#EXT-X-ENDLIST")?;

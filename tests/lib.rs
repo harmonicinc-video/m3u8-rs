@@ -427,6 +427,8 @@ fn create_and_parse_media_playlist_full() {
             end_on_next: false,
             other_attributes: Default::default(),
         }],
+        ele_rating: Some("TV_US,0,Not%20rated".to_string()),
+        ele_title: Some("".to_string()),
         unknown_tags: vec![],
     });
     let playlist_parsed = print_create_and_parse_playlist(&mut playlist_original);
@@ -481,4 +483,19 @@ fn parsing_binary_data_should_fail_cleanly() {
     let res = parse_master_playlist_res(&data);
 
     assert!(res.is_err());
+}
+
+#[test]
+fn parsing_media_playlist_with_customer_ele_tags() {
+    let input = get_sample_playlist("media-playlist-with-customer-tags-cbc-hvo73.m3u8");
+    let parsed = parse_media_playlist_res(input.as_bytes()).unwrap();
+    assert_eq!(parsed.ele_rating, Some("TV_US,0,Not%20rated".to_string()), "ELE_RATING value doesn't match expected value");
+    assert_eq!(parsed.ele_title, Some("".to_string()), "ELE_TITLE should be true when tag is present");   
+}
+
+#[test]
+fn parsing_media_playlist_with_customer_ele_title() {
+    let input = get_sample_playlist("media-playlist-with-customer-tags-ele-title.m3u8");
+    let parsed = parse_media_playlist_res(input.as_bytes()).unwrap();
+    assert_eq!(parsed.ele_title, Some("Custom-Title".to_string()), "ELE_TITLE value doesn't match expected value");   
 }
