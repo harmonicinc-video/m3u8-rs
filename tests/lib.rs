@@ -487,10 +487,14 @@ fn parsing_binary_data_should_fail_cleanly() {
 
 #[test]
 fn parsing_media_playlist_with_customer_ele_tags() {
-    let input = get_sample_playlist("media-playlist-with-customer-tags-cbc-hvo73.m3u8");
+    let input = get_sample_playlist("media-playlist-with-customer-ele-tags.m3u8");
     let parsed = parse_media_playlist_res(input.as_bytes()).unwrap();
     assert_eq!(parsed.ele_rating, Some("TV_US,0,Not%20rated".to_string()), "ELE_RATING value doesn't match expected value");
-    assert_eq!(parsed.ele_title, Some("".to_string()), "ELE_TITLE should be true when tag is present");   
+    assert_eq!(parsed.ele_title, Some("".to_string()), "ELE_TITLE should be true when tag is present");
+    let mut buf = Vec::new();
+    parsed.write_to(&mut buf).unwrap();
+    let parsed_str = String::from_utf8(buf).unwrap();
+    assert_eq!(parsed_str.trim(), input.trim());
 }
 
 #[test]
@@ -498,4 +502,8 @@ fn parsing_media_playlist_with_customer_ele_title() {
     let input = get_sample_playlist("media-playlist-with-customer-tags-ele-title.m3u8");
     let parsed = parse_media_playlist_res(input.as_bytes()).unwrap();
     assert_eq!(parsed.ele_title, Some("Custom-Title".to_string()), "ELE_TITLE value doesn't match expected value");   
+    let mut buf = Vec::new();
+    parsed.write_to(&mut buf).unwrap();
+    let parsed_str = String::from_utf8(buf).unwrap();
+    assert_eq!(parsed_str.trim(), input.trim());
 }
