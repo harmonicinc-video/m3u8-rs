@@ -163,6 +163,7 @@ fn is_master_playlist_tag_line(i: &[u8]) -> IResult<&[u8], Option<(bool, String)
             opt(alt((
                 map(tag("#EXT-X-STREAM-INF"), |t| (true, t)),
                 map(tag("#EXT-X-I-FRAME-STREAM-INF"), |t| (true, t)),
+                map(tag("#EXT-X-IMAGE-STREAM-INF"), |t| (true, t)),
                 map(terminated(tag("#EXT-X-MEDIA"), is_not("-")), |t| (true, t)), // terminated() to prevent matching with #EXT-X-MEDIA-SEQUENCE for which we have a separate pattern below
                 map(tag("#EXT-X-SESSION-KEY"), |t| (true, t)),
                 map(tag("#EXT-X-SESSION-DATA"), |t| (true, t)),
@@ -231,6 +232,7 @@ fn master_playlist_tag(i: &[u8]) -> IResult<&[u8], MasterPlaylistTag> {
         map(version_tag, MasterPlaylistTag::Version),
         map(variant_stream_tag, MasterPlaylistTag::VariantStream),
         map(variant_i_frame_stream_tag, MasterPlaylistTag::VariantStream),
+        map(variant_image_stream_tag, MasterPlaylistTag::VariantStream),
         map(alternative_media_tag, MasterPlaylistTag::AlternativeMedia),
         map(session_data_tag, MasterPlaylistTag::SessionData),
         map(session_key_tag, MasterPlaylistTag::SessionKey),
@@ -288,14 +290,21 @@ fn master_playlist_from_tags(mut tags: Vec<MasterPlaylistTag>) -> MasterPlaylist
 fn variant_stream_tag(i: &[u8]) -> IResult<&[u8], VariantStream> {
     map_res(
         pair(tag("#EXT-X-STREAM-INF:"), key_value_pairs),
-        |(_, attributes)| VariantStream::from_hashmap(attributes, false),
+        |(_, attributes)| VariantStream::from_hashmap(attributes, VariantStreamType::Regular),
     )(i)
 }
 
 fn variant_i_frame_stream_tag(i: &[u8]) -> IResult<&[u8], VariantStream> {
     map_res(
         pair(tag("#EXT-X-I-FRAME-STREAM-INF:"), key_value_pairs),
-        |(_, attributes)| VariantStream::from_hashmap(attributes, true),
+        |(_, attributes)| VariantStream::from_hashmap(attributes, VariantStreamType::IFrame),
+    )(i)
+}
+
+fn variant_image_stream_tag(i: &[u8]) -> IResult<&[u8], VariantStream> {
+    map_res(
+        pair(tag("#EXT-X-IMAGE-STREAM-INF:"), key_value_pairs),
+        |(_, attributes)| VariantStream::from_hashmap(attributes, VariantStreamType::Image),
     )(i)
 }
 
@@ -817,6 +826,7 @@ mod tests {
                 "\n".as_bytes(),
                 VariantStream {
                     is_i_frame: false,
+                    is_image: false,
                     uri: "".into(),
                     bandwidth: 300000,
                     average_bandwidth: None,
@@ -1021,3 +1031,18 @@ mod tests {
         ));
     }
 }
+
+    #[test]
+    fn test_master_variant_image_stream() {
+        let input = b"#EXT-X-IMAGE-STREAM-INF:BANDWIDTH=476720,RESOLUTION=1920x1080,CODECS=\"jpeg\",URI=\"index_4.m3u8\"\n";
+        let result = variant_image_stream_tag(input);
+        assert!(result.is_ok());
+
+        let (remaining, variant) = result.unwrap();
+        assert_eq!(remaining, "\n".as_bytes());
+        assert!(variant.is_image);
+        assert_eq!(variant.bandwidth, 476720);
+        assert_eq!(variant.codecs, Some("jpeg".into()));
+        assert_eq!(variant.resolution, Some(Resolution { width: 1920, height: 1080 }));
+        assert_eq!(variant.uri, "index_4.m3u8");
+    }
