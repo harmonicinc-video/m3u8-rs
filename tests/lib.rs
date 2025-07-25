@@ -115,6 +115,11 @@ fn playlist_media_with_scte35_1() {
     ));
 }
 
+#[test]
+fn playlist_media_with_images() {
+    assert!(print_parse_playlist_test("media-playlist-with-images-only-tag.m3u8"));
+}
+
 // -----------------------------------------------------------------------------------------------
 // Playlist with no newline end
 
@@ -232,6 +237,7 @@ fn create_segment_float_inf() {
     playlist.write_to(&mut v).unwrap();
     let m3u8_str: &str = std::str::from_utf8(&v).unwrap();
     assert!(m3u8_str.contains("#EXTINF:2.00000,title"));
+    WRITE_OPT_FLOAT_PRECISION.store(usize::MAX, Ordering::Relaxed);
 }
 
 #[test]
@@ -365,6 +371,7 @@ fn create_and_parse_media_playlist_full() {
         end_list: true,
         playlist_type: Some(MediaPlaylistType::Vod),
         i_frames_only: true,
+        images_only: false,
         start: Some(Start {
             time_offset: "9999".parse().unwrap(),
             precise: Some(true),
@@ -508,6 +515,18 @@ fn parsing_media_playlist_with_customer_ele_title() {
     let input = get_sample_playlist("media-playlist-with-customer-tags-ele-title.m3u8");
     let parsed = parse_media_playlist_res(input.as_bytes()).unwrap();
     assert_eq!(parsed.ele_title, Some("Custom-Title".to_string()), "ELE_TITLE value doesn't match expected value");   
+    let mut buf = Vec::new();
+    parsed.write_to(&mut buf).unwrap();
+    let parsed_str = String::from_utf8(buf).unwrap();
+    assert_eq!(parsed_str.trim(), input.trim());
+}
+
+#[test]
+fn parsing_media_playlist_with_images_only_tag() {
+    let input = get_sample_playlist("media-playlist-with-images-only-tag.m3u8");
+    let parsed = parse_media_playlist_res(input.as_bytes()).unwrap();
+    assert!(parsed.images_only, "EXT-X-IMAGES-ONLY should be true");
+    
     let mut buf = Vec::new();
     parsed.write_to(&mut buf).unwrap();
     let parsed_str = String::from_utf8(buf).unwrap();

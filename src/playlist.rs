@@ -754,6 +754,8 @@ pub struct MediaPlaylist {
     pub playlist_type: Option<MediaPlaylistType>,
     /// `#EXT-X-I-FRAMES-ONLY`
     pub i_frames_only: bool,
+    /// `#EXT-X-IMAGES-ONLY`
+    pub images_only: bool,
     /// `#EXT-X-START`
     pub start: Option<Start>,
     /// `#EXT-X-INDEPENDENT-SEGMENTS`
@@ -778,6 +780,9 @@ impl MediaPlaylist {
 
         if self.media_sequence != 0 {
             writeln!(w, "#EXT-X-MEDIA-SEQUENCE:{}", self.media_sequence)?;
+        }
+        if self.images_only {
+            writeln!(w, "#EXT-X-IMAGES-ONLY")?;
         }
         if self.discontinuity_sequence != 0 {
             writeln!(

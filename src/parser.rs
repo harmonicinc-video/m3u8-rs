@@ -180,6 +180,7 @@ fn is_master_playlist_tag_line(i: &[u8]) -> IResult<&[u8], Option<(bool, String)
                 map(tag("#EXT-X-MAP"), |t| (false, t)),
                 map(tag("#EXT-X-PROGRAM-DATE-TIME"), |t| (false, t)),
                 map(tag("#EXT-X-DATERANGE"), |t| (false, t)),
+                map(tag("#EXT-X-IMAGES-ONLY"), |t| (false, t)),
             ))),
             consume_line,
         )),
@@ -361,6 +362,7 @@ enum MediaPlaylistTag {
     EndList,
     PlaylistType(MediaPlaylistType),
     IFramesOnly,
+    ImagesOnly,
     Start(Start),
     IndependentSegments,
     DateRange(DateRange),
@@ -380,6 +382,10 @@ fn media_playlist_tag(i: &[u8]) -> IResult<&[u8], MediaPlaylistTag> {
             pair(tag("#EXT-X-MEDIA-SEQUENCE:"), number),
             |(_, sequence)| MediaPlaylistTag::MediaSequence(sequence),
         ),
+        map(
+            tag("#EXT-X-IMAGES-ONLY"), |_| {
+            MediaPlaylistTag::ImagesOnly
+        }),
         map(
             pair(tag("#EXT-X-DISCONTINUITY-SEQUENCE:"), number),
             |(_, sequence)| MediaPlaylistTag::DiscontinuitySequence(sequence),
@@ -442,6 +448,9 @@ fn media_playlist_from_tags(mut tags: Vec<MediaPlaylistTag>) -> MediaPlaylist {
             }
             MediaPlaylistTag::PlaylistType(t) => {
                 media_playlist.playlist_type = Some(t);
+            }
+            MediaPlaylistTag::ImagesOnly => {
+                media_playlist.images_only = true;
             }
             MediaPlaylistTag::IFramesOnly => {
                 media_playlist.i_frames_only = true;
