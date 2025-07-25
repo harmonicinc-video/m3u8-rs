@@ -74,6 +74,11 @@ fn playlist_master_with_multiple_codecs() {
     ));
 }
 
+#[test]
+fn playlist_master_with_images() {
+    assert!(print_parse_playlist_test("master-playlist-with-images-only-tag.m3u8"));
+}
+
 // -- Media playlists
 
 #[test]
@@ -282,6 +287,7 @@ fn create_and_parse_master_playlist_full() {
         ],
         variants: vec![VariantStream {
             is_i_frame: false,
+            is_image: false,
             uri: "masterplaylist-uri".into(),
             bandwidth: 10010010,
             average_bandwidth: Some(10010010),

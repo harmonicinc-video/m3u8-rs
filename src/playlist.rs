@@ -184,7 +184,10 @@ pub struct MasterPlaylist {
 
 impl MasterPlaylist {
     pub fn get_newest_variant(&mut self) -> Option<&mut VariantStream> {
-        self.variants.iter_mut().rev().find(|v| !v.is_i_frame)
+        self.variants
+            .iter_mut()
+            .rev()
+            .find(|v| !v.is_i_frame && !v.is_image)
     }
 
     pub fn write_to<T: Write>(&self, w: &mut T) -> std::io::Result<()> {
@@ -223,6 +226,7 @@ impl MasterPlaylist {
 
 /// [`#EXT-X-STREAM-INF:<attribute-list> <URI>`](https://tools.ietf.org/html/draft-pantos-http-live-streaming-19#section-4.3.4.2)
 /// [`#EXT-X-I-FRAME-STREAM-INF:<attribute-list>`](https://tools.ietf.org/html/draft-pantos-http-live-streaming-19#section-4.3.4.3)
+/// [`#EXT-X-IMAGE-STREAM-INF:<attribute-list>`](Roku-based image playlists in JPEG format)
 ///
 /// A Variant Stream includes a Media Playlist that specifies media
 /// encoded at a particular bit rate, in a particular format, and at a
@@ -235,9 +239,17 @@ impl MasterPlaylist {
 /// Clients should switch between different Variant Streams to adapt to
 /// network conditions.  Clients should choose Renditions based on user
 /// preferences.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum VariantStreamType {
+    Regular,
+    IFrame,
+    Image,
+}
+
 #[derive(Debug, Default, PartialEq, Clone)]
 pub struct VariantStream {
     pub is_i_frame: bool,
+    pub is_image: bool,
     pub uri: String,
 
     // <attribute-list>
@@ -258,8 +270,13 @@ pub struct VariantStream {
 impl VariantStream {
     pub(crate) fn from_hashmap(
         mut attrs: HashMap<String, QuotedOrUnquoted>,
-        is_i_frame: bool,
+        stream_type: VariantStreamType,
     ) -> Result<VariantStream, String> {
+        let (is_i_frame, is_image) = match stream_type {
+            VariantStreamType::Regular => (false, false),
+            VariantStreamType::IFrame => (true, false),
+            VariantStreamType::Image => (false, true),
+        };
         let uri = quoted_string!(attrs, "URI").unwrap_or_default();
         // TODO: keep in attrs if parsing optional attributes fails
         let bandwidth = unquoted_string_parse!(attrs, "BANDWIDTH", |s: &str| s
@@ -286,6 +303,7 @@ impl VariantStream {
 
         Ok(VariantStream {
             is_i_frame,
+            is_image,
             uri,
             bandwidth,
             average_bandwidth,
@@ -304,6 +322,10 @@ impl VariantStream {
     pub(crate) fn write_to<T: Write>(&self, w: &mut T) -> std::io::Result<()> {
         if self.is_i_frame {
             write!(w, "#EXT-X-I-FRAME-STREAM-INF:")?;
+            self.write_stream_inf_common_attributes(w)?;
+            writeln!(w, ",URI=\"{}\"", self.uri)
+        } else if self.is_image {
+            write!(w, "#EXT-X-IMAGE-STREAM-INF:")?;
             self.write_stream_inf_common_attributes(w)?;
             writeln!(w, ",URI=\"{}\"", self.uri)
         } else {
@@ -1248,5 +1270,28 @@ mod test {
             std::str::from_utf8(output.as_slice()).unwrap(),
             "#EXT-X-CUE-IN"
         )
+    }
+    #[test]
+    fn master_variant_stream_type_mapping() {
+        use std::collections::HashMap;
+        use crate::QuotedOrUnquoted;
+
+        // Test regular stream
+        let mut attrs = HashMap::new();
+        attrs.insert("BANDWIDTH".to_string(), QuotedOrUnquoted::Unquoted("1000000".to_string()));
+        
+        let regular_stream = VariantStream::from_hashmap(attrs.clone(), VariantStreamType::Regular).unwrap();
+        assert!(!regular_stream.is_i_frame);
+        assert!(!regular_stream.is_image);
+
+        // Test I-Frame stream
+        let iframe_stream = VariantStream::from_hashmap(attrs.clone(), VariantStreamType::IFrame).unwrap();
+        assert!(iframe_stream.is_i_frame);
+        assert!(!iframe_stream.is_image);
+
+        // Test Image stream
+        let image_stream = VariantStream::from_hashmap(attrs, VariantStreamType::Image).unwrap();
+        assert!(!image_stream.is_i_frame);
+        assert!(image_stream.is_image);
     }
 }
