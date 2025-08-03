@@ -187,7 +187,7 @@ impl MasterPlaylist {
         self.variants
             .iter_mut()
             .rev()
-            .find(|v| !v.is_i_frame && !v.is_image)
+            .find(|v| !v.is_i_frame)
     }
 
     pub fn write_to<T: Write>(&self, w: &mut T) -> std::io::Result<()> {
@@ -1298,5 +1298,39 @@ mod test {
         let image_stream = VariantStream::from_hashmap(attrs, VariantStreamType::Image).unwrap();
         assert!(!image_stream.is_i_frame);
         assert!(image_stream.is_image);
+    }
+
+  #[test]
+    fn master_playlist_get_newest_variant_returns_last_non_i_frame() {
+        let mut playlist = MasterPlaylist {
+            variants: vec![
+                VariantStream {
+                    is_i_frame: true,
+                    is_image: false,
+                    uri: "uri1".to_string(),
+                    bandwidth: 1000,
+                    ..Default::default()
+                },
+                VariantStream {
+                    is_i_frame: true,
+                    is_image: false,
+                    uri: "uri2".to_string(),
+                    bandwidth: 2000,
+                    ..Default::default()
+                },
+                VariantStream {
+                    is_i_frame: false,
+                    is_image: true,
+                    uri: "uri3".to_string(),
+                    bandwidth: 3000,
+                    ..Default::default()
+                },
+            ],
+            ..Default::default()
+        };
+
+        let newest = playlist.get_newest_variant();
+        assert!(newest.is_some());
+        assert_eq!(newest.unwrap().uri, "uri3");
     }
 }
