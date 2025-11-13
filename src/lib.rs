@@ -49,8 +49,8 @@
 //!     playlist_type: Some(MediaPlaylistType::Vod),
 //!     segments: vec![
 //!         MediaSegment {
-//!             uri: "20140311T113819-01-338559live.ts".into(),
-//!             duration: 2.002,
+//!             uri: Some("20140311T113819-01-338559live.ts".into()),
+//!             duration: Some(2.002),
 //!             title: Some("title".into()),
 //!             ..Default::default()
 //!         },
@@ -77,7 +77,7 @@
 //!     target_duration: 3,
 //!     segments: vec![
 //!         MediaSegment {
-//!             duration: 2.9,
+//!             duration: Some(2.9),
 //!             title: Some("title".into()),
 //!             ..Default::default()
 //!         },

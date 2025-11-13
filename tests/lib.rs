@@ -219,8 +219,8 @@ fn create_segment_float_inf() {
         end_list: true,
         playlist_type: Some(MediaPlaylistType::Vod),
         segments: vec![MediaSegment {
-            uri: "20140311T113819-01-338559live.ts".into(),
-            duration: 2.000f32,
+            uri: Some("20140311T113819-01-338559live.ts".into()),
+            duration: Some(2.000f32),
             title: Some("title".into()),
             ..Default::default()
         }],
@@ -350,8 +350,8 @@ fn create_and_parse_media_playlist_single_segment() {
     let mut playlist_original = Playlist::MediaPlaylist(MediaPlaylist {
         target_duration: 2,
         segments: vec![MediaSegment {
-            uri: "20140311T113819-01-338559live.ts".into(),
-            duration: 2.002,
+            uri: Some("20140311T113819-01-338559live.ts".into()),
+            duration: Some(2.002),
             title: Some("hey".into()),
             ..Default::default()
         }],
@@ -379,8 +379,8 @@ fn create_and_parse_media_playlist_full() {
         }),
         independent_segments: true,
         segments: vec![MediaSegment {
-            uri: "20140311T113819-01-338559live.ts".into(),
-            duration: 2.002,
+            uri: Some("20140311T113819-01-338559live.ts".into()),
+            duration: Some(2.002),
             title: Some("338559".into()),
             byte_range: Some(ByteRange {
                 length: 137116,
@@ -443,6 +443,12 @@ fn create_and_parse_media_playlist_full() {
         ele_rating: Some("TV_US,0,Not%20rated".to_string()),
         ele_title: Some("".to_string()),
         unknown_tags: vec![],
+
+        server_control: Default::default(),
+        part_inf: Default::default(),
+        skip: Default::default(),
+        preload_hint: Default::default(),
+        rendition_report: Default::default(),
     });
     let playlist_parsed = print_create_and_parse_playlist(&mut playlist_original);
     assert_eq!(playlist_original, playlist_parsed);
@@ -527,6 +533,20 @@ fn parsing_media_playlist_with_images_only_tag() {
     let parsed = parse_media_playlist_res(input.as_bytes()).unwrap();
     assert!(parsed.images_only, "EXT-X-IMAGES-ONLY should be true");
     
+    let mut buf = Vec::new();
+    parsed.write_to(&mut buf).unwrap();
+    let parsed_str = String::from_utf8(buf).unwrap();
+    assert_eq!(parsed_str.trim(), input.trim());
+}
+
+
+#[test]
+fn parsing_media_playlist_llhls(){
+    let input = get_sample_playlist("media-playlist-llhls.m3u8");
+    let parsed = parse_media_playlist_res(input.as_bytes()).unwrap();
+    assert!(parsed.server_control.is_some(), "EXT-X-SERVER-CONTROL should be present");
+    assert!(parsed.part_inf.is_some(), "EXT-X-PART-INF should be present");
+
     let mut buf = Vec::new();
     parsed.write_to(&mut buf).unwrap();
     let parsed_str = String::from_utf8(buf).unwrap();

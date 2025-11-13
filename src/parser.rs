@@ -366,6 +366,12 @@ enum MediaPlaylistTag {
     Start(Start),
     IndependentSegments,
     DateRange(DateRange),
+
+    ServerControl(ServerControl),
+    PartInf(PartInf),
+    Skip(Skip),
+    PreloadHint(PreloadHint),
+    RenditionReport(RenditionReport),
 }
 
 fn media_playlist_tag(i: &[u8]) -> IResult<&[u8], MediaPlaylistTag> {
@@ -413,6 +419,11 @@ fn media_playlist_tag(i: &[u8]) -> IResult<&[u8], MediaPlaylistTag> {
             MediaPlaylistTag::DateRange(range)
         }),
         map(tag("#EXT-X-ENDLIST"), |_| MediaPlaylistTag::EndList),
+        map(server_control_tag, MediaPlaylistTag::ServerControl),
+        map(part_inf_tag, MediaPlaylistTag::PartInf),
+        map(skip_tag, MediaPlaylistTag::Skip),
+        map(preload_hint_tag, MediaPlaylistTag::PreloadHint),
+        map(rendition_report_tag, MediaPlaylistTag::RenditionReport),
         map(media_segment_tag, MediaPlaylistTag::Segment),
     ))(i)
 }
@@ -464,9 +475,24 @@ fn media_playlist_from_tags(mut tags: Vec<MediaPlaylistTag>) -> MediaPlaylist {
             MediaPlaylistTag::DateRange(d) => {
                 media_playlist.date_ranges.push(d);
             }
+            MediaPlaylistTag::ServerControl(s) => {
+                media_playlist.server_control = Some(s);
+            }
+            MediaPlaylistTag::PartInf(p) => {
+                media_playlist.part_inf = Some(p);
+            }
+            MediaPlaylistTag::Skip(s) => {
+                media_playlist.skip = Some(s);
+            }
+            MediaPlaylistTag::PreloadHint(p) => {
+                media_playlist.preload_hint = Some(p);
+            }
+            MediaPlaylistTag::RenditionReport(r) => {
+                media_playlist.rendition_report.push(r);
+            }
             MediaPlaylistTag::Segment(segment_tag) => match segment_tag {
                 SegmentTag::Extinf(d, t) => {
-                    next_segment.duration = d;
+                    next_segment.duration = Some(d);
                     next_segment.title = t;
                 }
                 SegmentTag::ByteRange(b) => {
@@ -484,22 +510,30 @@ fn media_playlist_from_tags(mut tags: Vec<MediaPlaylistTag>) -> MediaPlaylist {
                 SegmentTag::ProgramDateTime(d) => {
                     next_segment.program_date_time = Some(d);
                 }
-                SegmentTag::Unknown(t) => {
-                    next_segment.unknown_tags.push(t);
-                }
                 SegmentTag::Uri(u) => {
                     next_segment.key = encryption_key.clone();
                     next_segment.map = map.clone();
-                    next_segment.uri = u;
+                    next_segment.uri = Some(u);
                     media_playlist.segments.push(next_segment);
                     next_segment = MediaSegment::empty();
                     encryption_key = vec![];
                     map = None;
                 }
+                SegmentTag::Part(p) => {
+                    next_segment.parts.push(p);
+                }
+                SegmentTag::Unknown(t) => {
+                    next_segment.unknown_tags.push(t);
+                }
                 _ => (),
             },
         }
     }
+
+    if next_segment != MediaSegment::empty() {
+        media_playlist.segments.push(next_segment);
+    }
+
     media_playlist
 }
 
@@ -526,6 +560,7 @@ enum SegmentTag {
     Unknown(ExtTag),
     Comment(Option<String>),
     Uri(String),
+    Part(Part),
 }
 
 fn media_segment_tag(i: &[u8]) -> IResult<&[u8], SegmentTag> {
@@ -549,6 +584,7 @@ fn media_segment_tag(i: &[u8]) -> IResult<&[u8], SegmentTag> {
             pair(tag("#EXT-X-PROGRAM-DATE-TIME:"), program_date_time),
             |(_, pdt)| SegmentTag::ProgramDateTime(pdt),
         ),
+        map(part_tag, SegmentTag::Part), // Ensure part_tag is integrated here
         map(ext_tag, SegmentTag::Unknown),
         map(comment_tag, SegmentTag::Comment),
         map(consume_line, SegmentTag::Uri),
@@ -816,6 +852,50 @@ fn unquoted_from_utf8_slice(s: &[u8]) -> Result<QuotedOrUnquoted, string::FromUt
         Ok(q) => Ok(QuotedOrUnquoted::Unquoted(q)),
         Err(e) => Err(e),
     }
+}
+
+// Low latency HLS parsers
+
+fn server_control_tag(i: &[u8]) -> IResult<&[u8], ServerControl> {
+    map_res(
+        pair(tag("#EXT-X-SERVER-CONTROL:"), key_value_pairs),
+        |(_, attributes)| ServerControl::from_hashmap(attributes),
+    )(i)
+}
+
+fn part_inf_tag(i: &[u8]) -> IResult<&[u8], PartInf> {
+    map_res(
+        pair(tag("#EXT-X-PART-INF:"), key_value_pairs),
+        |(_, attributes)| PartInf::from_hashmap(attributes),
+    )(i)
+}
+
+fn part_tag(i: &[u8]) -> IResult<&[u8], Part> {
+    map_res(
+        pair(tag("#EXT-X-PART:"), key_value_pairs),
+        |(_, attributes)| Part::from_hashmap(attributes),
+    )(i)
+}
+
+fn skip_tag(i: &[u8]) -> IResult<&[u8], Skip> {
+    map_res(
+        pair(tag("#EXT-X-SKIP:"), key_value_pairs),
+        |(_, attributes)| Skip::from_hashmap(attributes),
+    )(i)
+}
+
+fn preload_hint_tag(i: &[u8]) -> IResult<&[u8], PreloadHint> {
+    map_res(
+        pair(tag("#EXT-X-PRELOAD-HINT:"), key_value_pairs),
+        |(_, attributes)| PreloadHint::from_hashmap(attributes),
+    )(i)
+}
+
+fn rendition_report_tag(i: &[u8]) -> IResult<&[u8], RenditionReport> {
+    map_res(
+        pair(tag("#EXT-X-RENDITION-REPORT:"), key_value_pairs),
+        |(_, attributes)| RenditionReport::from_hashmap(attributes),
+    )(i)
 }
 
 #[cfg(test)]
