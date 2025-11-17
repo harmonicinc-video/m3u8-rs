@@ -861,6 +861,9 @@ impl MediaPlaylist {
         if let Some(ref start) = self.start {
             start.write_to(w)?;
         }
+        for unknown_tag in &self.unknown_tags {
+            writeln!(w, "{}", unknown_tag)?;
+        }
         for segment in &self.segments {
             segment.write_to(w)?;
         }
@@ -879,10 +882,6 @@ impl MediaPlaylist {
 
         for rendition_report in &self.rendition_report {
             rendition_report.write_to(w)?;
-        }
-
-        for unknown_tag in &self.unknown_tags {
-            writeln!(w, "{}", unknown_tag)?;
         }
 
         Ok(())
