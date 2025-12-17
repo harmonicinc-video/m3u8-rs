@@ -790,7 +790,7 @@ impl MediaPlaylist {
                 "#EXT-X-DISCONTINUITY-SEQUENCE:{}",
                 self.discontinuity_sequence
             )?;
-        }    
+        }
         if let Some(ref rating) = self.ele_rating {
             writeln!(w, "#EXT-X-ELE_RATING:{}", rating)?;
         }
@@ -1278,19 +1278,24 @@ mod test {
     }
     #[test]
     fn master_variant_stream_type_mapping() {
-        use std::collections::HashMap;
         use crate::QuotedOrUnquoted;
+        use std::collections::HashMap;
 
         // Test regular stream
         let mut attrs = HashMap::new();
-        attrs.insert("BANDWIDTH".to_string(), QuotedOrUnquoted::Unquoted("1000000".to_string()));
-        
-        let regular_stream = VariantStream::from_hashmap(attrs.clone(), VariantStreamType::Regular).unwrap();
+        attrs.insert(
+            "BANDWIDTH".to_string(),
+            QuotedOrUnquoted::Unquoted("1000000".to_string()),
+        );
+
+        let regular_stream =
+            VariantStream::from_hashmap(attrs.clone(), VariantStreamType::Regular).unwrap();
         assert!(!regular_stream.is_i_frame);
         assert!(!regular_stream.is_image);
 
         // Test I-Frame stream
-        let iframe_stream = VariantStream::from_hashmap(attrs.clone(), VariantStreamType::IFrame).unwrap();
+        let iframe_stream =
+            VariantStream::from_hashmap(attrs.clone(), VariantStreamType::IFrame).unwrap();
         assert!(iframe_stream.is_i_frame);
         assert!(!iframe_stream.is_image);
 
