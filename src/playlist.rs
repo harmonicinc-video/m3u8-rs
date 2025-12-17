@@ -845,7 +845,7 @@ impl MediaPlaylist {
                 "#EXT-X-DISCONTINUITY-SEQUENCE:{}",
                 self.discontinuity_sequence
             )?;
-        }    
+        }
         if let Some(ref rating) = self.ele_rating {
             writeln!(w, "#EXT-X-ELE_RATING:{}", rating)?;
         }
@@ -1331,7 +1331,12 @@ impl ServerControl {
     pub(crate) fn write_to<T: Write>(&self, w: &mut T) -> std::io::Result<()> {
         write!(w, "#EXT-X-SERVER-CONTROL:")?;
         let mut first_written = false;
-        write_some_float_attribute!(w, "CAN-SKIP-UNTIL", &self.can_skip_until, &mut first_written)?;
+        write_some_float_attribute!(
+            w,
+            "CAN-SKIP-UNTIL",
+            &self.can_skip_until,
+            &mut first_written
+        )?;
         if self.can_skip_dateranges {
             if first_written {
                 write!(w, ",")?;
@@ -1340,7 +1345,12 @@ impl ServerControl {
             first_written = true;
         }
         write_some_float_attribute!(w, "HOLD-BACK", &self.hold_back, &mut first_written)?;
-        write_some_float_attribute!(w, "PART-HOLD-BACK", &self.part_hold_back, &mut first_written)?;
+        write_some_float_attribute!(
+            w,
+            "PART-HOLD-BACK",
+            &self.part_hold_back,
+            &mut first_written
+        )?;
         if self.can_block_reload {
             if first_written {
                 write!(w, ",")?;
@@ -1525,8 +1535,10 @@ impl RenditionReport {
         let last_msn = unquoted_string_parse!(attrs, "LAST-MSN", |s: &str| s
             .parse::<u64>()
             .map_err(|err| format!("Failed to parse LAST-MSN attribute: {}", err)))
-            .ok_or_else(|| String::from("EXT-X-RENDITION-REPORT without mandatory LAST-MSN attribute"))?;
-        
+        .ok_or_else(|| {
+            String::from("EXT-X-RENDITION-REPORT without mandatory LAST-MSN attribute")
+        })?;
+
         let last_part = unquoted_string_parse!(attrs, "LAST-PART", |s: &str| s
             .parse::<u64>()
             .map_err(|err| format!("Failed to parse LAST-PART attribute: {}", err)));
@@ -1644,19 +1656,24 @@ mod test {
     }
     #[test]
     fn master_variant_stream_type_mapping() {
-        use std::collections::HashMap;
         use crate::QuotedOrUnquoted;
+        use std::collections::HashMap;
 
         // Test regular stream
         let mut attrs = HashMap::new();
-        attrs.insert("BANDWIDTH".to_string(), QuotedOrUnquoted::Unquoted("1000000".to_string()));
-        
-        let regular_stream = VariantStream::from_hashmap(attrs.clone(), VariantStreamType::Regular).unwrap();
+        attrs.insert(
+            "BANDWIDTH".to_string(),
+            QuotedOrUnquoted::Unquoted("1000000".to_string()),
+        );
+
+        let regular_stream =
+            VariantStream::from_hashmap(attrs.clone(), VariantStreamType::Regular).unwrap();
         assert!(!regular_stream.is_i_frame);
         assert!(!regular_stream.is_image);
 
         // Test I-Frame stream
-        let iframe_stream = VariantStream::from_hashmap(attrs.clone(), VariantStreamType::IFrame).unwrap();
+        let iframe_stream =
+            VariantStream::from_hashmap(attrs.clone(), VariantStreamType::IFrame).unwrap();
         assert!(iframe_stream.is_i_frame);
         assert!(!iframe_stream.is_image);
 
