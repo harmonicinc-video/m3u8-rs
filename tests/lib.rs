@@ -76,7 +76,9 @@ fn playlist_master_with_multiple_codecs() {
 
 #[test]
 fn playlist_master_with_images() {
-    assert!(print_parse_playlist_test("master-playlist-with-images-only-tag.m3u8"));
+    assert!(print_parse_playlist_test(
+        "master-playlist-with-images-only-tag.m3u8"
+    ));
 }
 
 // -- Media playlists
@@ -117,7 +119,9 @@ fn playlist_media_with_scte35_1() {
 
 #[test]
 fn playlist_media_with_images() {
-    assert!(print_parse_playlist_test("media-playlist-with-images-only-tag.m3u8"));
+    assert!(print_parse_playlist_test(
+        "media-playlist-with-images-only-tag.m3u8"
+    ));
 }
 
 // -----------------------------------------------------------------------------------------------
@@ -387,21 +391,24 @@ fn create_and_parse_media_playlist_full() {
                 offset: Some(4559),
             }),
             discontinuity: true,
-            key: vec![Key {
-                method: KeyMethod::None,
-                uri: Some("https://secure.domain.com".into()),
-                iv: Some("0xb059217aa2649ce170b734".into()),
-                keyformat: Some("xXkeyformatXx".into()),
-                keyformatversions: Some("xXFormatVers".into()),
-                key_id: Some("0xb059217aa2649ce170b734".into()),
-            }, Key {
-                method: KeyMethod::AES128,
-                uri: Some("https://secure.domain.com".into()),
-                iv: Some("0xb059217aa2649ce170b734".into()),
-                keyformat: Some("xXkeyformatXx".into()),
-                keyformatversions: Some("xXFormatVers".into()),
-                key_id: Some("0xb059217aa2649ce170b734".into()),
-            }],
+            key: vec![
+                Key {
+                    method: KeyMethod::None,
+                    uri: Some("https://secure.domain.com".into()),
+                    iv: Some("0xb059217aa2649ce170b734".into()),
+                    keyformat: Some("xXkeyformatXx".into()),
+                    keyformatversions: Some("xXFormatVers".into()),
+                    key_id: Some("0xb059217aa2649ce170b734".into()),
+                },
+                Key {
+                    method: KeyMethod::AES128,
+                    uri: Some("https://secure.domain.com".into()),
+                    iv: Some("0xb059217aa2649ce170b734".into()),
+                    keyformat: Some("xXkeyformatXx".into()),
+                    keyformatversions: Some("xXFormatVers".into()),
+                    key_id: Some("0xb059217aa2649ce170b734".into()),
+                },
+            ],
             map: Some(Map {
                 uri: "www.map-uri.com".into(),
                 byte_range: Some(ByteRange {
@@ -410,11 +417,12 @@ fn create_and_parse_media_playlist_full() {
                 }),
                 other_attributes: Default::default(),
             }),
-            program_date_time: Some(chrono::FixedOffset::east_opt(8 * 3600)
-            .unwrap()
-            .with_ymd_and_hms(2010, 2, 19, 14, 54, 23)
-            .unwrap()
-            + chrono::Duration::milliseconds(31)
+            program_date_time: Some(
+                chrono::FixedOffset::east_opt(8 * 3600)
+                    .unwrap()
+                    .with_ymd_and_hms(2010, 2, 19, 14, 54, 23)
+                    .unwrap()
+                    + chrono::Duration::milliseconds(31),
             ),
             unknown_tags: vec![ExtTag {
                 tag: "X-CUE-OUT".into(),
@@ -508,8 +516,16 @@ fn parsing_binary_data_should_fail_cleanly() {
 fn parsing_media_playlist_with_customer_ele_tags() {
     let input = get_sample_playlist("media-playlist-with-customer-ele-tags.m3u8");
     let parsed = parse_media_playlist_res(input.as_bytes()).unwrap();
-    assert_eq!(parsed.ele_rating, Some("TV_US,0,Not%20rated".to_string()), "ELE_RATING value doesn't match expected value");
-    assert_eq!(parsed.ele_title, Some("".to_string()), "ELE_TITLE should be true when tag is present");
+    assert_eq!(
+        parsed.ele_rating,
+        Some("TV_US,0,Not%20rated".to_string()),
+        "ELE_RATING value doesn't match expected value"
+    );
+    assert_eq!(
+        parsed.ele_title,
+        Some("".to_string()),
+        "ELE_TITLE should be true when tag is present"
+    );
     let mut buf = Vec::new();
     parsed.write_to(&mut buf).unwrap();
     let parsed_str = String::from_utf8(buf).unwrap();
@@ -520,7 +536,11 @@ fn parsing_media_playlist_with_customer_ele_tags() {
 fn parsing_media_playlist_with_customer_ele_title() {
     let input = get_sample_playlist("media-playlist-with-customer-tags-ele-title.m3u8");
     let parsed = parse_media_playlist_res(input.as_bytes()).unwrap();
-    assert_eq!(parsed.ele_title, Some("Custom-Title".to_string()), "ELE_TITLE value doesn't match expected value");   
+    assert_eq!(
+        parsed.ele_title,
+        Some("Custom-Title".to_string()),
+        "ELE_TITLE value doesn't match expected value"
+    );
     let mut buf = Vec::new();
     parsed.write_to(&mut buf).unwrap();
     let parsed_str = String::from_utf8(buf).unwrap();
@@ -532,20 +552,25 @@ fn parsing_media_playlist_with_images_only_tag() {
     let input = get_sample_playlist("media-playlist-with-images-only-tag.m3u8");
     let parsed = parse_media_playlist_res(input.as_bytes()).unwrap();
     assert!(parsed.images_only, "EXT-X-IMAGES-ONLY should be true");
-    
+
     let mut buf = Vec::new();
     parsed.write_to(&mut buf).unwrap();
     let parsed_str = String::from_utf8(buf).unwrap();
     assert_eq!(parsed_str.trim(), input.trim());
 }
 
-
 #[test]
-fn parsing_media_playlist_llhls(){
+fn parsing_media_playlist_llhls() {
     let input = get_sample_playlist("media-playlist-llhls.m3u8");
     let parsed = parse_media_playlist_res(input.as_bytes()).unwrap();
-    assert!(parsed.server_control.is_some(), "EXT-X-SERVER-CONTROL should be present");
-    assert!(parsed.part_inf.is_some(), "EXT-X-PART-INF should be present");
+    assert!(
+        parsed.server_control.is_some(),
+        "EXT-X-SERVER-CONTROL should be present"
+    );
+    assert!(
+        parsed.part_inf.is_some(),
+        "EXT-X-PART-INF should be present"
+    );
 
     let mut buf = Vec::new();
     parsed.write_to(&mut buf).unwrap();
