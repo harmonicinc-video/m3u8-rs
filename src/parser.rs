@@ -476,7 +476,7 @@ fn media_playlist_from_tags(mut tags: Vec<MediaPlaylistTag>) -> MediaPlaylist {
                     next_segment.discontinuity = true;
                 }
                 SegmentTag::Key(k) => {
-                    encryption_key = vec![k];
+                    encryption_key.push(k);
                 }
                 SegmentTag::Map(m) => {
                     map = Some(m);
