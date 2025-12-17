@@ -382,10 +382,7 @@ fn media_playlist_tag(i: &[u8]) -> IResult<&[u8], MediaPlaylistTag> {
             pair(tag("#EXT-X-MEDIA-SEQUENCE:"), number),
             |(_, sequence)| MediaPlaylistTag::MediaSequence(sequence),
         ),
-        map(
-            tag("#EXT-X-IMAGES-ONLY"), |_| {
-            MediaPlaylistTag::ImagesOnly
-        }),
+        map(tag("#EXT-X-IMAGES-ONLY"), |_| MediaPlaylistTag::ImagesOnly),
         map(
             pair(tag("#EXT-X-DISCONTINUITY-SEQUENCE:"), number),
             |(_, sequence)| MediaPlaylistTag::DiscontinuitySequence(sequence),
@@ -574,9 +571,11 @@ fn key(i: &[u8]) -> IResult<&[u8], Key> {
 
 /// Handle missing colon in TZ from ffmpeg output
 fn program_date_time(i: &[u8]) -> IResult<&[u8], chrono::DateTime<chrono::FixedOffset>> {
-    map_res(consume_line, |s| chrono::DateTime::parse_from_rfc3339(&s).or_else(|_| {
-        chrono::DateTime::<chrono::FixedOffset>::parse_from_str(&s, "%Y-%m-%dT%H:%M:%S.%f%z")
-    }))(i)
+    map_res(consume_line, |s| {
+        chrono::DateTime::parse_from_rfc3339(&s).or_else(|_| {
+            chrono::DateTime::<chrono::FixedOffset>::parse_from_str(&s, "%Y-%m-%dT%H:%M:%S.%f%z")
+        })
+    })(i)
 }
 
 fn daterange(i: &[u8]) -> IResult<&[u8], DateRange> {
@@ -1041,17 +1040,23 @@ mod tests {
     }
 }
 
-    #[test]
-    fn test_master_variant_image_stream() {
-        let input = b"#EXT-X-IMAGE-STREAM-INF:BANDWIDTH=476720,RESOLUTION=1920x1080,CODECS=\"jpeg\",URI=\"index_4.m3u8\"\n";
-        let result = variant_image_stream_tag(input);
-        assert!(result.is_ok());
+#[test]
+fn test_master_variant_image_stream() {
+    let input = b"#EXT-X-IMAGE-STREAM-INF:BANDWIDTH=476720,RESOLUTION=1920x1080,CODECS=\"jpeg\",URI=\"index_4.m3u8\"\n";
+    let result = variant_image_stream_tag(input);
+    assert!(result.is_ok());
 
-        let (remaining, variant) = result.unwrap();
-        assert_eq!(remaining, "\n".as_bytes());
-        assert!(variant.is_image);
-        assert_eq!(variant.bandwidth, 476720);
-        assert_eq!(variant.codecs, Some("jpeg".into()));
-        assert_eq!(variant.resolution, Some(Resolution { width: 1920, height: 1080 }));
-        assert_eq!(variant.uri, "index_4.m3u8");
-    }
+    let (remaining, variant) = result.unwrap();
+    assert_eq!(remaining, "\n".as_bytes());
+    assert!(variant.is_image);
+    assert_eq!(variant.bandwidth, 476720);
+    assert_eq!(variant.codecs, Some("jpeg".into()));
+    assert_eq!(
+        variant.resolution,
+        Some(Resolution {
+            width: 1920,
+            height: 1080
+        })
+    );
+    assert_eq!(variant.uri, "index_4.m3u8");
+}
