@@ -1207,6 +1207,12 @@ pub struct DateRange {
     pub planned_duration: Option<f64>,
     pub x_prefixed: Option<HashMap<String, QuotedOrUnquoted>>, //  X-<client-attribute>
     pub end_on_next: bool,
+    /// `SCTE35-CMD` attribute value (unquoted hex string, empty when absent)
+    pub scte35_cmd: String,
+    /// `SCTE35-OUT` attribute value (unquoted hex string, empty when absent)
+    pub scte35_out: String,
+    /// `SCTE35-IN` attribute value (unquoted hex string, empty when absent)
+    pub scte35_in: String,
     pub other_attributes: Option<HashMap<String, QuotedOrUnquoted>>,
 }
 
@@ -1229,6 +1235,9 @@ impl DateRange {
             .parse::<f64>()
             .map_err(|err| format!("Failed to parse PLANNED-DURATION attribute: {}", err)));
         let end_on_next = is_yes!(attrs, "END-ON-NEXT");
+        let scte35_cmd = unquoted_string!(attrs, "SCTE35-CMD").unwrap_or_default();
+        let scte35_out = unquoted_string!(attrs, "SCTE35-OUT").unwrap_or_default();
+        let scte35_in = unquoted_string!(attrs, "SCTE35-IN").unwrap_or_default();
         let mut x_prefixed = HashMap::new();
         let mut other_attributes = HashMap::new();
         for (k, v) in attrs.into_iter() {
@@ -1252,6 +1261,9 @@ impl DateRange {
                 Some(x_prefixed)
             },
             end_on_next,
+            scte35_cmd,
+            scte35_out,
+            scte35_in,
             other_attributes: if other_attributes.is_empty() {
                 None
             } else {
@@ -1278,6 +1290,15 @@ impl DateRange {
         }
         if self.end_on_next {
             write!(w, ",END-ON-NEXT=YES")?;
+        }
+        if !self.scte35_cmd.is_empty() {
+            write!(w, ",SCTE35-CMD={}", self.scte35_cmd)?;
+        }
+        if !self.scte35_out.is_empty() {
+            write!(w, ",SCTE35-OUT={}", self.scte35_out)?;
+        }
+        if !self.scte35_in.is_empty() {
+            write!(w, ",SCTE35-IN={}", self.scte35_in)?;
         }
         if let Some(other_attributes) = &self.other_attributes {
             for (name, attr) in other_attributes {

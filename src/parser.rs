@@ -220,7 +220,7 @@ enum MasterPlaylistTag {
     SessionKey(SessionKey),
     Start(Start),
     IndependentSegments,
-    Comment(Option<String>),
+    Comment(()),
     Uri(String),
     Unknown(ExtTag),
 }
@@ -242,7 +242,7 @@ fn master_playlist_tag(i: &[u8]) -> IResult<&[u8], MasterPlaylistTag> {
             MasterPlaylistTag::IndependentSegments
         }),
         map(ext_tag, MasterPlaylistTag::Unknown),
-        map(comment_tag, MasterPlaylistTag::Comment),
+        map(comment_tag, |_| MasterPlaylistTag::Comment(())),
         map(consume_line, MasterPlaylistTag::Uri),
     ))(i)
 }
@@ -555,7 +555,7 @@ enum SegmentTag {
     Map(Map),
     ProgramDateTime(chrono::DateTime<chrono::FixedOffset>),
     Unknown(ExtTag),
-    Comment(Option<String>),
+    Comment(()),
     Uri(String),
     Part(Part),
 }
@@ -583,7 +583,7 @@ fn media_segment_tag(i: &[u8]) -> IResult<&[u8], SegmentTag> {
         ),
         map(part_tag, SegmentTag::Part), // Ensure part_tag is integrated here
         map(ext_tag, SegmentTag::Unknown),
-        map(comment_tag, SegmentTag::Comment),
+        map(comment_tag, |_| SegmentTag::Comment(())),
         map(consume_line, SegmentTag::Uri),
     ))(i)
 }

@@ -446,6 +446,9 @@ fn create_and_parse_media_playlist_full() {
                 "whatever".into(),
             )])),
             end_on_next: false,
+            scte35_cmd: String::new(),
+            scte35_out: String::new(),
+            scte35_in: String::new(),
             other_attributes: Default::default(),
         }],
         ele_rating: Some("TV_US,0,Not%20rated".to_string()),
@@ -557,6 +560,99 @@ fn parsing_media_playlist_with_images_only_tag() {
     parsed.write_to(&mut buf).unwrap();
     let parsed_str = String::from_utf8(buf).unwrap();
     assert_eq!(parsed_str.trim(), input.trim());
+}
+
+#[test]
+fn create_and_parse_daterange_with_scte35() {
+    // Build a playlist containing two DATERANGE tags: one with SCTE35-OUT and
+    // one with SCTE35-IN, then verify parse → write → parse round-trips cleanly.
+    let hex_out = "0xFC3000110000000000FF0005200E000000017FEFFE";
+    let hex_in = "0xFC3000110000000000FF000520AE000000017FEFFE";
+
+    let playlist_original = Playlist::MediaPlaylist(MediaPlaylist {
+        version: Some(3),
+        target_duration: 6,
+        segments: vec![MediaSegment {
+            uri: Some("main1.ts".into()),
+            duration: Some(6.0),
+            ..Default::default()
+        }],
+        date_ranges: vec![
+            DateRange {
+                id: "splice-out".into(),
+                class: None,
+                start_date: chrono::DateTime::parse_from_rfc3339("2020-12-15T13:00:06Z").unwrap(),
+                end_date: None,
+                duration: Some(30.0),
+                planned_duration: None,
+                x_prefixed: None,
+                end_on_next: false,
+                scte35_cmd: String::new(),
+                scte35_out: hex_out.to_string(),
+                scte35_in: String::new(),
+                other_attributes: Default::default(),
+            },
+            DateRange {
+                id: "splice-in".into(),
+                class: None,
+                start_date: chrono::DateTime::parse_from_rfc3339("2020-12-15T13:00:36Z").unwrap(),
+                end_date: None,
+                duration: None,
+                planned_duration: None,
+                x_prefixed: None,
+                end_on_next: false,
+                scte35_cmd: String::new(),
+                scte35_out: String::new(),
+                scte35_in: hex_in.to_string(),
+                other_attributes: Default::default(),
+            },
+        ],
+        end_list: true,
+        ..Default::default()
+    });
+
+    // Write to bytes and parse back
+    let mut utf8: Vec<u8> = Vec::new();
+    playlist_original.write_to(&mut utf8).unwrap();
+    let m3u8_str = std::str::from_utf8(&utf8).unwrap();
+
+    // Verify the serialized output contains the SCTE35 attributes unquoted
+    assert!(
+        m3u8_str.contains(&format!("SCTE35-OUT={}", hex_out)),
+        "SCTE35-OUT missing in:\n{}",
+        m3u8_str
+    );
+    assert!(
+        !m3u8_str.contains(&format!("SCTE35-OUT=\"{}\"", hex_out)),
+        "SCTE35-OUT should be unquoted in:\n{}",
+        m3u8_str
+    );
+    assert!(
+        m3u8_str.contains(&format!("SCTE35-IN={}", hex_in)),
+        "SCTE35-IN missing in:\n{}",
+        m3u8_str
+    );
+    assert!(
+        !m3u8_str.contains(&format!("SCTE35-IN=\"{}\"", hex_in)),
+        "SCTE35-IN should be unquoted in:\n{}",
+        m3u8_str
+    );
+
+    // Full round-trip: parse the written output and compare
+    let playlist_reparsed =
+        Playlist::MediaPlaylist(parse_media_playlist_res(utf8.as_bytes()).unwrap());
+    assert_eq!(playlist_original, playlist_reparsed);
+
+    // Verify field values on the re-parsed struct
+    if let Playlist::MediaPlaylist(ref pl) = playlist_reparsed {
+        assert_eq!(pl.date_ranges[0].scte35_out, hex_out);
+        assert!(pl.date_ranges[0].scte35_in.is_empty());
+        assert!(pl.date_ranges[0].scte35_cmd.is_empty());
+
+        assert_eq!(pl.date_ranges[1].scte35_in, hex_in);
+        assert!(pl.date_ranges[1].scte35_out.is_empty());
+        assert!(pl.date_ranges[1].scte35_cmd.is_empty());
+    }
 }
 
 #[test]
