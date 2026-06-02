@@ -1263,11 +1263,22 @@ impl DateRange {
     pub fn write_attributes_to<T: Write>(&self, w: &mut T) -> std::io::Result<()> {
         write_some_attribute_quoted!(w, "ID", &Some(&self.id))?;
         write_some_attribute_quoted!(w, ",CLASS", &self.class)?;
-        write_some_attribute_quoted!(w, ",START-DATE", &Some(&self.start_date.to_rfc3339_opts(chrono::SecondsFormat::Millis, true)))?;
+        write_some_attribute_quoted!(
+            w,
+            ",START-DATE",
+            &Some(
+                &self
+                    .start_date
+                    .to_rfc3339_opts(chrono::SecondsFormat::Millis, true)
+            )
+        )?;
         write_some_attribute_quoted!(
             w,
             ",END-DATE",
-            &self.end_date.as_ref().map(|dt| dt.to_rfc3339_opts(chrono::SecondsFormat::Millis, true))
+            &self
+                .end_date
+                .as_ref()
+                .map(|dt| dt.to_rfc3339_opts(chrono::SecondsFormat::Millis, true))
         )?;
         write_some_float_attribute!(w, ",DURATION", &self.duration)?;
         write_some_float_attribute!(w, ",PLANNED-DURATION", &self.planned_duration)?;

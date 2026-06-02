@@ -605,9 +605,17 @@ fn daterange_write_attributes_required_fields_only() {
     let output = String::from_utf8(buf).unwrap();
 
     assert!(output.contains("ID=\"range-1\""), "output: {}", output);
-    assert!(output.contains("START-DATE=\"2020-01-01T00:00:00.000Z\""), "output: {}", output);
+    assert!(
+        output.contains("START-DATE=\"2020-01-01T00:00:00.000Z\""),
+        "output: {}",
+        output
+    );
     assert!(!output.contains("CLASS"), "output: {}", output);
-    assert!(output.contains("END-DATE=\"2020-01-01T00:00:30.000Z\""), "output: {}", output);
+    assert!(
+        output.contains("END-DATE=\"2020-01-01T00:00:30.000Z\""),
+        "output: {}",
+        output
+    );
     assert!(!output.contains("DURATION"), "output: {}", output);
     assert!(!output.contains("END-ON-NEXT"), "output: {}", output);
 }
