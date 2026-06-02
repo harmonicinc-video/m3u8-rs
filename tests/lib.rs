@@ -577,3 +577,37 @@ fn parsing_media_playlist_llhls() {
     let parsed_str = String::from_utf8(buf).unwrap();
     assert_eq!(parsed_str.trim(), input.trim());
 }
+
+#[test]
+fn daterange_write_attributes_required_fields_only() {
+    let start = chrono::FixedOffset::east_opt(0)
+        .unwrap()
+        .with_ymd_and_hms(2020, 1, 1, 0, 0, 0)
+        .unwrap();
+    let end = chrono::FixedOffset::east_opt(0)
+        .unwrap()
+        .with_ymd_and_hms(2020, 1, 1, 0, 0, 30)
+        .unwrap();
+    let dr = DateRange {
+        id: "range-1".into(),
+        class: None,
+        start_date: start,
+        end_date: Some(end),
+        duration: None,
+        planned_duration: None,
+        x_prefixed: None,
+        end_on_next: false,
+        other_attributes: None,
+    };
+
+    let mut buf = Vec::new();
+    dr.write_attributes_to(&mut buf).unwrap();
+    let output = String::from_utf8(buf).unwrap();
+
+    assert!(output.contains("ID=\"range-1\""), "output: {}", output);
+    assert!(output.contains("START-DATE=\"2020-01-01T00:00:00.000Z\""), "output: {}", output);
+    assert!(!output.contains("CLASS"), "output: {}", output);
+    assert!(output.contains("END-DATE=\"2020-01-01T00:00:30.000Z\""), "output: {}", output);
+    assert!(!output.contains("DURATION"), "output: {}", output);
+    assert!(!output.contains("END-ON-NEXT"), "output: {}", output);
+}
