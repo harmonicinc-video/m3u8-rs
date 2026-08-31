@@ -381,16 +381,16 @@ fn media_playlist_tag(i: &[u8]) -> IResult<&[u8], MediaPlaylistTag> {
     alt((
         map(version_tag, MediaPlaylistTag::Version),
         map(
-            pair(tag("#EXT-X-TARGETDURATION:"), number),
+            pair(tag("#EXT-X-TARGETDURATION:"), number_line),
             |(_, duration)| MediaPlaylistTag::TargetDuration(duration),
         ),
         map(
-            pair(tag("#EXT-X-MEDIA-SEQUENCE:"), number),
+            pair(tag("#EXT-X-MEDIA-SEQUENCE:"), number_line),
             |(_, sequence)| MediaPlaylistTag::MediaSequence(sequence),
         ),
         map(tag("#EXT-X-IMAGES-ONLY"), |_| MediaPlaylistTag::ImagesOnly),
         map(
-            pair(tag("#EXT-X-DISCONTINUITY-SEQUENCE:"), number),
+            pair(tag("#EXT-X-DISCONTINUITY-SEQUENCE:"), number_line),
             |(_, sequence)| MediaPlaylistTag::DiscontinuitySequence(sequence),
         ),
         map(
@@ -804,6 +804,16 @@ fn number(i: &[u8]) -> IResult<&[u8], u64> {
     })(i)
 }
 
+/// Like [`number`], but requires the number to be the only content on the
+/// line (aside from surrounding whitespace). Used for single-value tags such
+/// as `#EXT-X-TARGETDURATION` so that trailing garbage on the line (e.g. a
+/// stray literal `\r`) rejects the whole tag instead of leaking an
+/// unconsumed fragment that gets misparsed as a phantom segment/URI on the
+/// next parse attempt.
+fn number_line(i: &[u8]) -> IResult<&[u8], u64> {
+    map_res(consume_line, |s: String| s.trim().parse::<u64>())(i)
+}
+
 fn byte_range_val(i: &[u8]) -> IResult<&[u8], ByteRange> {
     map(pair(number, opt(preceded(char('@'), number))), |(n, o)| {
         ByteRange {
@@ -1084,6 +1094,28 @@ mod tests {
             consume_line(b"before\r\nrest"),
             Result::Ok(("rest".as_bytes(), "before".into()))
         );
+    }
+
+    #[test]
+    fn number_line_valid() {
+        assert_eq!(number_line(b"4\nrest"), Result::Ok(("rest".as_bytes(), 4u64)));
+    }
+
+    #[test]
+    fn number_line_rejects_trailing_garbage() {
+        // A stray literal `\r` (two ASCII chars, not a real carriage return) after the
+        // digits must reject the whole tag rather than silently truncating to the digits
+        // and leaking the leftover to be misparsed as a phantom segment/URI.
+        assert!(number_line(b"4\\r\nrest").is_err());
+    }
+
+    #[test]
+    fn media_playlist_targetduration_with_trailing_garbage_does_not_fabricate_segment() {
+        let input = b"#EXTM3U\n#EXT-X-TARGETDURATION:4\\r\n#EXT-X-MAP:URI=\"init.m4i\"\n#EXTINF:4,\nseg_0.ts\n";
+        let (_, playlist) = parse_media_playlist(input).expect("should still parse the playlist");
+        assert_eq!(playlist.segments.len(), 1, "expected only the real segment, got {:?}", playlist.segments);
+        assert_eq!(playlist.segments[0].uri.as_deref(), Some("seg_0.ts"));
+        assert_eq!(playlist.segments[0].map.as_ref().map(|m| m.uri.as_str()), Some("init.m4i"));
     }
 
     #[test]
